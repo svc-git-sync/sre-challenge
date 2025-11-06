@@ -1,0 +1,48 @@
+# .github/workflows/e2e-test.yml
+name: E2E Kubernetes Testing
+on:
+    push:
+      branches: [main]
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Create Kind Cluster
+      uses: container-tools/kind-action@v1
+      with:
+        name: test-cluster
+        config: |
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+          - role: worker
+    - name: Deploy to Kind
+      run: |
+        kubectl apply -f task2/namespace.yaml
+        kubectl apply -f task2/ -n web-app
+
+    - name: Wait for deployment
+      run: |
+        kubectl wait --for=condition=available --timeout=300s deployment/web-app -n web-app
+        kubectl wait --for=condition=available --timeout=300s deployment/nginx -n web-app
+
+    - name: Run tests
+      run: |
+        # Test service endpoints
+        kubectl run test-pod --image=curlimages/curl -n web-app --rm -i --restart=Never -- \
+          curl -f http://web-app-service:80/ || exit 1
+
+        # Test nginx health endpoint
+        kubectl run test-pod --image=curlimages/curl -n web-app --rm -i --restart=Never -- \
+          curl -f http://nginx-service:80/nginx-health || exit 1
+
+        # Verify replica count
+        replicas=$(kubectl get deployment web-app -n web-app -o jsonpath='{.status.readyReplicas}')
+        if [ "$replicas" -lt 2 ]; then
+          echo "Expected at least 2 replicas, got $replicas"
+          exit 1
+        fi
