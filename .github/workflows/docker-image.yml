@@ -54,7 +54,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: sre-challenge/task1
+          context: task1
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
