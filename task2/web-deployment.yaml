@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: ghcr.io/svc-git-sync/coding-challenges-hw:master
+        image: ghcr.io/svc-git-sync/docker pull ghcr.io/svc-git-sync/sre-challenge-hw:main
         ports:
         - containerPort: 8080
           name: http
